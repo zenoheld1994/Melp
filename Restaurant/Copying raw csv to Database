@@ -1,0 +1,3 @@
+Copying raw csv to Database 
+
+COPY public."Restaurants"(id,rating,name,site,email,phone,street,city,state,lat,lng) FROM '/Library/PostgreSQL/9.6/scripts/restaurantes.csv' (DELIMITER ',',FORMAT CSV,NULL '',HEADER, ENCODING 'UTF8');
