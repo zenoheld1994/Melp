@@ -1,0 +1,25 @@
+#Install
+Distribution Postgres 9.3
+Python 3.5.2 or newer
+#Steps to run
+1. on desired location use git clone https://github.com/zenoheld1994/Melp.git
+2. On pgadmin utility or psql
+2.1 Create a database called Melp on postgres with UTF8 encoding 
+2.2 run Restaurants.sql it will create a table "Restaurants"
+2.3Create indexing 
+CREATE INDEX Restaurants_gix ON "Restaurants" USING GIST (Geography(mpoly));
+
+3. Follow next tutorial to install postgis
+	https://docs.djangoproject.com/en/2.1/ref/contrib/gis/tutorial/
+
+4. On terminal run pip install -r Requirements.txt it will install all necesary libraries
+(it is advised to create a virtual env with 
+$ python3 -m venv Melpenv 
+$ source Melpenv/bin/activate
+If everything is right you will see a (Melpenv) on the left of the directory
+to install all needed libraries and not affect your computer)
+5. Change settings.py accordingly to your needs specifically DATABASES since it has settings according to my computer
+6. Run $ python manage.py makemigrations
+7. Run $ python manage.py migrate Restaurant
+6. run with $python manage.py runserver 0.0.0.0:$anyopenport
+7.Enjoy!
