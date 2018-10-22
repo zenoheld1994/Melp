@@ -4,8 +4,13 @@ from rest_framework import serializers
 import re
 from uuid import uuid4
 from .models import Restaurants
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import Distance  
+from operator import attrgetter
+import statistics 
 
-class RestaurantsSerializer(serializers.Serializer):
+#Serializer to serialize  most of Crud operations
+class RestaurantsSerializer(serializers.ModelSerializer):
 	id = serializers.CharField(required=True)
 	rating = serializers.IntegerField(required=True)
 	name = serializers.CharField(required=True)
@@ -19,41 +24,39 @@ class RestaurantsSerializer(serializers.Serializer):
 	lng = serializers.FloatField(required=True)
 	class Meta:
 		model = Restaurants
-		fields = ('id')
-	def get_id(self,obj):
-		return obj.id.pk
-	def get_closer(self,obj):
-		
-	'''def get_idEscuela(self,obj):
-		return obj.idEscuela.pk
-	def get_usuario(self,obj):
-		userauth = UserAuth.objects.get(pk=obj.idUser)
-		return userauth.username
-	def get_idGrupo(self,obj):
-		try:
-			return obj.idGrupo.pk
-		except:
-			try:
-				return obj.idGrupo
-			except:
-				return None
-	def get_nombreGrupo(self,obj):
-		try:
-			grupo = Grupos.objects.get(pk=obj.idGrupo.pk)
-			return grupo.nombre
-		except:
-			try:
-				grupo = Grupos.objects.get(pk=obj.idGrupo)
-				return grupo.nombre
-			except:
-				return None
-	def get_nombreEscuela(self,obj):
-		try:
-			escuela = Escuelas.objects.get(pk=obj.idEscuela.pk)
-			return escuela.nombre
-		except:
-			try:
-				escuela = Escuelas.objects.get(pk=obj.idEscuela)
-				return escuela.nombre
-			except:
-				return None'''
+		fields = ('id','rating','name','site','email','phone','street','city','state','lat','lng')
+
+#Serializer for getStatistic Service
+class RestaurantSerializer(serializers.Serializer):
+	latitude = serializers.FloatField(required=True)
+	longitude = serializers.FloatField(required=True)
+	radius = serializers.SerializerMethodField()
+	#validate that radius is a number with few validations
+	def validate_radius(self,radius):
+		if(radius.isdigit() and (not radius)):
+			return radius
+		else:
+			raise serializers.ValidationError("Please provide a numeric value or/and a value")
+
+	class Meta:
+		model = Restaurants
+		fields = ('latitude','longitude','radius')
+	def get_statistics(self,validated_data):
+		longt = validated_data['longitude']
+		lati = validated_data['latitude']
+		radius = validated_data['radius']
+		point = Point(float(longt),float(lati)) 
+		#Using raw query instead of  DLimit (Windows distribution Issue)
+		restaurants=Restaurants.objects.raw("SELECT * FROM  \"Restaurants\" WHERE ST_DWithin(Geography(mpoly),Geography(ST_MakePoint("+longt+"," +lati+")),"+radius+");")
+		#Cast from raw query to List
+		listWithObj = list(restaurants)
+		#Obtaining only the column with the info we need
+		listWithRating = list(map(attrgetter('rating'), listWithObj))
+		info = {}
+		info["count"]=len(list(restaurants))
+		info["avg"]= float(sum(listWithRating))/len(listWithRating)
+		info["std"]= statistics.stdev(listWithRating)
+
+		return info
+
+
